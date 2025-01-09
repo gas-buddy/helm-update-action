@@ -9,8 +9,8 @@ REPO_NAME="$2"
 
 
 declare -A ACCOUNT_IDS=(
-  ["stage"]="123456789012"
-  ["prod"]="123456789013"
+  ["stage"]="267230788984"
+  ["prod"]="896521799855"
 )
 
 if [[ -z "${ACCOUNT_IDS[$ACCOUNT_NAME]:-}" ]]; then
