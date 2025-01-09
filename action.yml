@@ -1,0 +1,27 @@
+name: Automate Helm Chart Updates
+description: A reusable GitHub Action to update Helm chart values with the latest ECR image tag.
+inputs:
+  account:
+    description: "Environment account (e.g., stage or prod)"
+    required: true
+  repo-name:
+    description: "Repository name (matches ECR repo name)"
+    required: true
+outputs:
+  success:
+    description: "Indicates whether the action completed successfully"
+runs:
+  using: composite
+  steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Authenticate with AWS
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Run Helm Update Script
+      run: ./scripts/update-helm.sh ${{ inputs.account }} ${{ inputs.repo-name }}
