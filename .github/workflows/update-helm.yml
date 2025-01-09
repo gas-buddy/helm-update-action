@@ -23,5 +23,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+          
       - name: Update Helm Chart
         run: ./scripts/update-helm.sh ${{ github.event.inputs.account }} ${{ github.event.inputs.repo }}
