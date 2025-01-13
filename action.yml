@@ -30,6 +30,12 @@ runs:
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         aws-region: ${{ inputs.aws-region }}
 
+    - name: Checkout Composite Action Repository
+      run: |
+        echo "Copying composite action scripts to workflow directory"
+        cp -r ./scripts $GITHUB_WORKSPACE/scripts
+      shell: bash
+
     - name: Run Helm Update Script
       run: ./scripts/update-helm.sh ${{ inputs.account }} ${{ inputs.repo-name }}
       shell: bash
