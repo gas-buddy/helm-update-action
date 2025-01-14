@@ -2,81 +2,68 @@ name: Automate Helm Chart Updates
 description: A reusable GitHub Action to update Helm chart values with the latest ECR image tag.
 inputs:
   account:
-    description: "Environment account (e.g., stage or prod)"
+    description: "Environment account (e.g., stage or prod)."
     required: true
   repository-name:
-    description: "Repository name (matches ECR repo name)"
+    description: "ECR repository name (e.g., testing)."
     required: true
   aws-access-key-id:
-    description: "AWS Access Key ID"
+    description: "AWS Access Key ID."
     required: true
   aws-secret-access-key:
-    description: "AWS Secret Access Key"
+    description: "AWS Secret Access Key."
     required: true
   aws-region:
-    description: "AWS Region"
+    description: "AWS Region (e.g., us-east-1)."
     required: true
+  aws-account-id:
+    description: "AWS Account ID (e.g., 896521799855)."
+    required: true
+  helm-chart-path:
+    description: "Path to the Helm chart values file."
+    required: true
+  github-token:
+    description: "GitHub token for authentication."
+    required: true
+ 
 
 runs:
-  using: composite
+  using: "composite"
   steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Authenticate with AWS
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ inputs.aws-access-key-id }}
-        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-        aws-region: ${{ inputs.aws-region }}
-
-    - name: Run Helm Update Script
+    - name: Automate Helm Chart Update Workflow
+      shell: bash
       run: |
         set -euo pipefail
-        AWS_REGION="${{ inputs.aws-region }}"
-        ACCOUNT_NAME="${{ inputs.account }}"
-        REPO_NAME="${{ inputs.repository-name }}"
-        declare -A ACCOUNT_IDS=(
-          ["stage"]="267230788984"
-          ["prod"]="896521799855"
-        )
-        if [[ -z "${ACCOUNT_IDS[$ACCOUNT_NAME]:-}" ]]; then
-        echo "Error: Invalid account name '${ACCOUNT_NAME}'. Allowed values are: ${!ACCOUNT_IDS[@]}" >&2
-        echo "Error: Invalid account name '${ACCOUNT_NAME}'. Allowed values are: ${!ACCOUNT_IDS[@]}" | tr ' ' '\n' >&2
-        fi
-        AWS_ACCOUNT_ID="${ACCOUNT_IDS[$ACCOUNT_NAME]}"
-        if [[ "$ACCOUNT_NAME" == "prod" ]]; then
-          HELM_CHART_PATH="${REPO_NAME}/devops/helm/values-production-main.yaml"
-        else
-          HELM_CHART_PATH="${REPO_NAME}/devops/helm/values-staging-main.yaml"
-        fi
-        if [[ ! -f "${HELM_CHART_PATH}" ]]; then
-          echo "Error: Helm chart file ${HELM_CHART_PATH} does not exist!" >&2
-          exit 1
-        fi
-        echo "Running Helm Chart Update Script..."
-        echo "AWS Region: ${AWS_REGION}"
-        echo "Account Name: ${ACCOUNT_NAME}"
-        echo "Repository Name: ${REPO_NAME}"
-        echo "Helm Chart Path: ${HELM_CHART_PATH}"
-        echo "AWS Account ID: ${AWS_ACCOUNT_ID}"
+
+        echo "Fetching the latest ECR image tag..."
         LATEST_TAG=$(aws ecr describe-images \
-          --repository-name "${REPO_NAME}" \
-          --region "${AWS_REGION}" \
-          --query 'sort_by(imageDetails, &imagePushedAt)[-1].imageTags[0]' \
-          --output text)
+                      --repository-name "${{ inputs.repository-name }}" \
+                      --query 'sort_by(imageDetails, &imagePushedAt)[-1].imageTags[0]' \
+                      --output text)
 
         if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
-          echo "Error: No valid tags found for the latest image in ECR." >&2
-          exit 1
+            echo "No valid tags found for the latest image in ECR." && exit 1
         fi
-        echo "Latest ECR image tag: ${LATEST_TAG}"
-        sed -i "s/^  tag: .*/  tag: ${LATEST_TAG}/" "${HELM_CHART_PATH}"
-        helm lint "$(dirname "${HELM_CHART_PATH}")"
-        git config user.name "GitHub Actions Bot"
-        git config user.email "actions@github.com"
-        git add "${HELM_CHART_PATH}"
-        git commit -m "Update image tag to ${LATEST_TAG} for account ${ACCOUNT_NAME} and repository ${REPO_NAME}"
-        git push
-        echo "Helm Chart Update Script completed successfully."
-      shell: bash
+
+        echo "Fetched latest tag: ${LATEST_TAG}"
+
+        echo "Authenticating Docker with ECR..."
+        aws ecr get-login-password --region "${{ inputs.aws-region }}" | docker login --username AWS --password-stdin "${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com"
+
+        echo "Installing Helm..."
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod +x get_helm.sh
+        ./get_helm.sh
+
+        echo "Debugging Helm values file (before):"
+        cat "${{ inputs.helm-chart-path }}"
+
+        echo "Updating Helm chart values..."
+        sed -i "s/^  tag: .*/  tag: ${LATEST_TAG}/" "${{ inputs.helm-chart-path }}"
+        helm lint $(dirname "${{ inputs.helm-chart-path }}") --values "${{ inputs.helm-chart-path }}"
+
+        echo "Debugging Helm values file (after):"
+        cat "${{ inputs.helm-chart-path }}"
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
