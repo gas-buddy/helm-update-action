@@ -4,7 +4,7 @@ inputs:
   account:
     description: "Environment account (e.g., stage or prod)"
     required: true
-  repo-name:
+  repository-name:
     description: "Repository name (matches ECR repo name)"
     required: true
   aws-access-key-id:
@@ -32,18 +32,17 @@ runs:
 
     - name: Run Helm Update Script
       run: |
-        #!/bin/bash
         set -euo pipefail
         AWS_REGION="${{ inputs.aws-region }}"
         ACCOUNT_NAME="${{ inputs.account }}"
-        REPO_NAME="${{ inputs.repo-name }}"
+        REPO_NAME="${{ inputs.repository-name }}"
         declare -A ACCOUNT_IDS=(
           ["stage"]="267230788984"
           ["prod"]="896521799855"
         )
         if [[ -z "${ACCOUNT_IDS[$ACCOUNT_NAME]:-}" ]]; then
         echo "Error: Invalid account name '${ACCOUNT_NAME}'. Allowed values are: ${!ACCOUNT_IDS[@]}" >&2
-        exit 1
+        echo "Error: Invalid account name '${ACCOUNT_NAME}'. Allowed values are: ${!ACCOUNT_IDS[@]}" | tr ' ' '\n' >&2
         fi
         AWS_ACCOUNT_ID="${ACCOUNT_IDS[$ACCOUNT_NAME]}"
         if [[ "$ACCOUNT_NAME" == "prod" ]]; then
