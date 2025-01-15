@@ -30,15 +30,16 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Automate Helm Chart Update Workflow
+    - name: Helm Chart Update Workflow
       shell: bash
       run: |
         set -euo pipefail
 
-        echo "Fetching the latest ECR image tag..."
+        echo "Fetching the latest tag for repository: ${{ inputs.repository-name }}"
         LATEST_TAG=$(aws ecr describe-images \
                       --repository-name "${{ inputs.repository-name }}" \
-                      --region "${{ inputs.aws-region }}" \
+                      --registry-id "${{ env.account-id }}" \
+                      # --region "${{ inputs.aws-region }}" \
                       --query 'sort_by(imageDetails, &imagePushedAt)[-1].imageTags[0]' \
                       --output text)
 
@@ -49,7 +50,9 @@ runs:
         echo "Fetched latest tag: ${LATEST_TAG}"
 
         echo "Authenticating Docker with ECR..."
-        aws ecr get-login-password --region "${{ inputs.aws-region }}" | docker login --username AWS --password-stdin "${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com"
+        # aws ecr get-login-password --region "${{ inputs.aws-region }}" | docker login --username AWS --password-stdin "${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com"
+        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "${{ env.account-id }}.dkr.ecr.us-east-1.amazonaws.com"
+
 
         echo "Installing Helm..."
         curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
