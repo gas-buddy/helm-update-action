@@ -39,7 +39,7 @@ runs:
         LATEST_TAG=$(aws ecr describe-images \
                       --repository-name "${{ inputs.repository-name }}" \
                       --registry-id "${{ env.account-id }}" \
-                      # --region "${{ inputs.aws-region }}" \
+                      --region "${{ inputs.aws-region }}" \
                       --query 'sort_by(imageDetails, &imagePushedAt)[-1].imageTags[0]' \
                       --output text)
 
