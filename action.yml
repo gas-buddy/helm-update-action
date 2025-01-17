@@ -78,8 +78,18 @@ runs:
       run: |
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
-        git add ${{ env.HELM_CHART_PATH }}
-        git commit -m "Updating image tag to ${LATEST_TAG}"
-        git push
+        echo "Staging changes..."
+        git add "${{ inputs.helm-chart-path }}"
+        # git add ${{ env.HELM_CHART_PATH }}
+        git status
+        if git diff --cached --quiet; then
+          echo "No changes to commit."
+        else
+          echo "Committing and pushing changes..."
+          git commit -m "Updating image tag to ${LATEST_TAG}"
+          git push
+        fi
+        # git commit -m "Updating image tag to ${LATEST_TAG}"
+        # git push
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
