@@ -82,4 +82,4 @@ runs:
         git commit -m "Updating image tag to ${LATEST_TAG}"
         git push
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
