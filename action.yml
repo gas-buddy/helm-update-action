@@ -72,3 +72,14 @@ runs:
         AWS_REGION: ${{ inputs.aws-region }}
         AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+    
+    - name: Commit and Push Changes
+      shell: bash
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git add ${{ env.HELM_CHART_PATH }}
+        git commit -m "Updating image tag to ${LATEST_TAG}"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
