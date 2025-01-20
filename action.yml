@@ -76,20 +76,51 @@ runs:
     - name: Commit and Push Changes
       shell: bash
       run: |
+        set -euo pipefail
+        echo "Checking for changes in the Helm chart..."
+        if git diff --quiet "${{ inputs.helm-chart-path }}"; then
+            echo "No changes detected in the Helm chart. Exiting."
+            exit 0
+        fi
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
-        echo "Staging changes..."
+        BRANCH_NAME="update-helm-tag-$(date +%s)"
+        git checkout -b "$BRANCH_NAME"
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
         git add "${{ inputs.helm-chart-path }}"
-        # git add ${{ env.HELM_CHART_PATH }}
-        git status
-        if git diff --cached --quiet; then
-          echo "No changes to commit."
-        else
-          echo "Committing and pushing changes..."
-          git commit -m "Updating image tag to ${LATEST_TAG}"
-          git push
-        fi
-        # git commit -m "Updating image tag to ${LATEST_TAG}"
-        # git push
+        git commit -m "Update Helm chart tag to ${LATEST_TAG}"
+        git push origin "$BRANCH_NAME"
       env:
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+       GITHUB_TOKEN: ${{ inputs.github-token }}
+
+
+    - name: Create Pull Request
+      id: create_pr
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ env.BRANCH_NAME }}
+        base: main
+        title: "Update Helm Chart Tag to ${LATEST_TAG}"
+        body: |
+            This pull request updates the Helm chart to use the latest image tag: `${LATEST_TAG}`.
+        labels: ["automation", "helm-update"]
+
+
+    - name: Notify on Slack
+      uses: slackapi/slack-github-action@v1.24.0
+      with:
+        slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+        channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+        custom-payload: |
+          {
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": ":rocket: A new PR has been created for updating the Helm chart:\n\n*<{{ steps.create_pr.outputs.pull-request-url }}|View Pull Request>*"
+                }
+              }
+            ]
+          }
