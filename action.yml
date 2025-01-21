@@ -88,21 +88,21 @@ runs:
           This pull request updates the Helm chart to use the latest image tag: `$LATEST_TAG`.
         labels: ["automation", "helm-update"]
 
-    - name: Notify on Slack
-      if: ${{ inputs.slack-bot-token && inputs.slack-channel-id }}
-      uses: slackapi/slack-github-action@v1.24.0
-      with:
-        slack-bot-token: ${{ inputs.slack-bot-token }}
-        channel-id: ${{ inputs.slack-channel-id }}
-        custom-payload: >
-          {
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": ":rocket: A new PR has been created for updating the Helm chart:\n\n*<{{ steps.create_pr.outputs.pull-request-url }}|View Pull Request>*"
-                }
-              }
-            ]
-          }
+    # - name: Notify on Slack
+    #   if: ${{ inputs.slack-bot-token && inputs.slack-channel-id }}
+    #   uses: slackapi/slack-github-action@v1.24.0
+    #   with:
+    #     slack-bot-token: ${{ inputs.slack-bot-token }}
+    #     channel-id: ${{ inputs.slack-channel-id }}
+    #     custom-payload: |
+    #       {
+    #         "blocks": [
+    #           {
+    #             "type": "section",
+    #             "text": {
+    #               "type": "mrkdwn",
+    #               "text": ":rocket: A new PR has been created for updating the Helm chart:\n\n*<${{ steps.create_pr.outputs.pull-request-url }}|View Pull Request>*"
+    #             }
+    #           }
+    #         ]
+    #       }
