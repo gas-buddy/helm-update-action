@@ -77,32 +77,32 @@ runs:
         git commit -m "Update Helm chart tag to $LATEST_TAG"
         git push origin "$BRANCH_NAME"
 
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ inputs.github-token }}
-        branch: ${{ env.BRANCH_NAME }}
-        base: main
-        title: "Update Helm Chart Tag to $LATEST_TAG"
-        body: |
-          This pull request updates the Helm chart to use the latest image tag: `$LATEST_TAG`.
-        labels: ["automation", "helm-update"]
+    # - name: Create Pull Request
+    #   uses: peter-evans/create-pull-request@v5
+    #   with:
+    #     token: ${{ inputs.github-token }}
+    #     branch: ${{ env.BRANCH_NAME }}
+    #     base: main
+    #     title: "Update Helm Chart Tag to $LATEST_TAG"
+    #     body: |
+    #       This pull request updates the Helm chart to use the latest image tag: `$LATEST_TAG`.
+    #     labels: ["automation", "helm-update"]
 
-    - name: Notify on Slack
-      if: ${{ inputs.slack-bot-token && inputs.slack-channel-id }}
-      uses: slackapi/slack-github-action@v1.24.0
-      with:
-        slack-bot-token: ${{ inputs.slack-bot-token }}
-        channel-id: ${{ inputs.slack-channel-id }}
-        custom-payload: |
-          {
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": ":rocket: A new PR has been created for updating the Helm chart:\n\n*<{{ steps.create_pr.outputs.pull-request-url }}|View Pull Request>*"
-                }
-              }
-            ]
-          }
+    # - name: Notify on Slack
+    #   if: ${{ inputs.slack-bot-token && inputs.slack-channel-id }}
+    #   uses: slackapi/slack-github-action@v1.24.0
+    #   with:
+    #     slack-bot-token: ${{ inputs.slack-bot-token }}
+    #     channel-id: ${{ inputs.slack-channel-id }}
+    #     custom-payload: |
+    #       {
+    #         "blocks": [
+    #           {
+    #             "type": "section",
+    #             "text": {
+    #               "type": "mrkdwn",
+    #               "text": ":rocket: A new PR has been created for updating the Helm chart:\n\n*<{{ steps.create_pr.outputs.pull-request-url }}|View Pull Request>*"
+    #             }
+    #           }
+    #         ]
+    #       }
