@@ -32,12 +32,10 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Update Helm Chart and Create PR
+    - name: Fetch the Latest Tag and Update Helm Chart
       shell: bash
       run: |
         set -euo pipefail
-
-        # Fetch the latest tag
         echo "Fetching the latest tag for repository: ${{ inputs.repository-name }}"
         LATEST_TAG=$(aws ecr describe-images \
                       --repository-name "${{ inputs.repository-name }}" \
@@ -51,17 +49,14 @@ runs:
         fi
 
         echo "Fetched latest tag: $LATEST_TAG"
-
-        # Authenticate Docker with ECR
         echo "Authenticating Docker with ECR..."
         aws ecr get-login-password --region "${{ inputs.aws-region }}" | docker login --username AWS --password-stdin "${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com"
 
-        # Update Helm Chart
         echo "Updating Helm chart values at: ${{ inputs.helm-chart-path }}"
         sed -i "s/^  tag: .*/  tag: $LATEST_TAG/" "${{ inputs.helm-chart-path }}"
         helm lint $(dirname "${{ inputs.helm-chart-path }}") --values "${{ inputs.helm-chart-path }}"
 
-        # Commit and Push Changes
+        echo "Preparing Git commit..."
         if git diff --quiet "${{ inputs.helm-chart-path }}"; then
             echo "No changes detected in the Helm chart. Exiting."
             exit 0
@@ -71,11 +66,10 @@ runs:
         git config user.email "actions@github.com"
         BRANCH_NAME="update-helm-tag-$(date +%s)"
         git checkout -b "$BRANCH_NAME"
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
         git add "${{ inputs.helm-chart-path }}"
         git commit -m "Update Helm chart tag to $LATEST_TAG"
         git push origin "$BRANCH_NAME"
-
-        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v5
@@ -88,21 +82,21 @@ runs:
           This pull request updates the Helm chart to use the latest image tag: `$LATEST_TAG`.
         labels: ["automation", "helm-update"]
 
-    # - name: Notify on Slack
-    #   if: ${{ inputs.slack-bot-token && inputs.slack-channel-id }}
-    #   uses: slackapi/slack-github-action@v1.24.0
-    #   with:
-    #     slack-bot-token: ${{ inputs.slack-bot-token }}
-    #     channel-id: ${{ inputs.slack-channel-id }}
-    #     custom-payload: |
-    #       {
-    #         "blocks": [
-    #           {
-    #             "type": "section",
-    #             "text": {
-    #               "type": "mrkdwn",
-    #               "text": ":rocket: A new PR has been created for updating the Helm chart:\n\n*<${{ steps.create_pr.outputs.pull-request-url }}|View Pull Request>*"
-    #             }
-    #           }
-    #         ]
-    #       }
+    - name: Notify on Slack
+      if: ${{ inputs.slack-bot-token && inputs.slack-channel-id }}
+      uses: slackapi/slack-github-action@v1.24.0
+      with:
+        slack-bot-token: ${{ inputs.slack-bot-token }}
+        channel-id: ${{ inputs.slack-channel-id }}
+        custom-payload: |
+          {
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": ":rocket: A new PR has been created for updating the Helm chart:\n\n*<{{ steps.create_pr.outputs.pull-request-url }}|View Pull Request>*"
+                }
+              }
+            ]
+          }
