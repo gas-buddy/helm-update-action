@@ -1,9 +1,6 @@
 name: Automate Helm Chart Updates
 description: A reusable GitHub Action to update Helm chart values with the latest ECR image tag.
 inputs:
-  account:
-    description: "Environment account (e.g., stage or prod)."
-    required: true
   repository-name:
     description: "ECR repository name (e.g., testing)."
     required: true
@@ -17,7 +14,7 @@ inputs:
     description: "AWS Region (e.g., us-east-1)."
     required: true
   aws-account-id:
-    description: "AWS Account ID (e.g., 896521799855)."
+    description: "AWS Account ID (e.g., 123456789012)."
     required: true
   helm-chart-path:
     description: "Path to the Helm chart values file."
@@ -25,15 +22,22 @@ inputs:
   github-token:
     description: "GitHub token for authentication."
     required: true
+  slack-bot-token:
+    description: "Slack Bot Token."
+    required: false
+  slack-channel-id:
+    description: "Slack Channel ID."
+    required: false
 
 runs:
   using: "composite"
   steps:
-    - name: Helm Chart Update Workflow
+    - name: Update Helm Chart and Create PR
       shell: bash
       run: |
         set -euo pipefail
 
+        # Fetch the latest tag
         echo "Fetching the latest tag for repository: ${{ inputs.repository-name }}"
         LATEST_TAG=$(aws ecr describe-images \
                       --repository-name "${{ inputs.repository-name }}" \
@@ -46,72 +50,50 @@ runs:
             echo "No valid tags found for the latest image in ECR." && exit 1
         fi
 
-        echo "Fetched latest tag: ${LATEST_TAG}"
+        echo "Fetched latest tag: $LATEST_TAG"
 
+        # Authenticate Docker with ECR
         echo "Authenticating Docker with ECR..."
         aws ecr get-login-password --region "${{ inputs.aws-region }}" | docker login --username AWS --password-stdin "${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com"
 
-        # aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "${{ env.account-id }}.dkr.ecr.us-east-1.amazonaws.com"
-
-
-        echo "Installing Helm..."
-        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-        chmod +x get_helm.sh
-        ./get_helm.sh
-
-        echo "Debugging Helm values file (before):"
-        cat "${{ inputs.helm-chart-path }}"
-
-        echo "Updating Helm chart values..."
-        sed -i "s/^  tag: .*/  tag: ${LATEST_TAG}/" "${{ inputs.helm-chart-path }}"
+        # Update Helm Chart
+        echo "Updating Helm chart values at: ${{ inputs.helm-chart-path }}"
+        sed -i "s/^  tag: .*/  tag: $LATEST_TAG/" "${{ inputs.helm-chart-path }}"
         helm lint $(dirname "${{ inputs.helm-chart-path }}") --values "${{ inputs.helm-chart-path }}"
 
-        echo "Debugging Helm values file (after):"
-        cat "${{ inputs.helm-chart-path }}"
-      env:
-        AWS_REGION: ${{ inputs.aws-region }}
-        AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
-    
-    - name: Commit and Push Changes
-      shell: bash
-      run: |
-        set -euo pipefail
-        echo "Checking for changes in the Helm chart..."
+        # Commit and Push Changes
         if git diff --quiet "${{ inputs.helm-chart-path }}"; then
             echo "No changes detected in the Helm chart. Exiting."
             exit 0
         fi
+
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
         BRANCH_NAME="update-helm-tag-$(date +%s)"
         git checkout -b "$BRANCH_NAME"
-        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
         git add "${{ inputs.helm-chart-path }}"
-        git commit -m "Update Helm chart tag to ${LATEST_TAG}"
+        git commit -m "Update Helm chart tag to $LATEST_TAG"
         git push origin "$BRANCH_NAME"
-      env:
-       GITHUB_TOKEN: ${{ inputs.github-token }}
 
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
     - name: Create Pull Request
-      id: create_pr
       uses: peter-evans/create-pull-request@v5
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ inputs.github-token }}
         branch: ${{ env.BRANCH_NAME }}
         base: main
-        title: "Update Helm Chart Tag to ${LATEST_TAG}"
+        title: "Update Helm Chart Tag to $LATEST_TAG"
         body: |
-            This pull request updates the Helm chart to use the latest image tag: `${LATEST_TAG}`.
+          This pull request updates the Helm chart to use the latest image tag: `$LATEST_TAG`.
         labels: ["automation", "helm-update"]
 
-
     - name: Notify on Slack
+      if: ${{ inputs.slack-bot-token && inputs.slack-channel-id }}
       uses: slackapi/slack-github-action@v1.24.0
       with:
-        slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
-        channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+        slack-bot-token: ${{ inputs.slack-bot-token }}
+        channel-id: ${{ inputs.slack-channel-id }}
         custom-payload: |
           {
             "blocks": [
