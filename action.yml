@@ -94,7 +94,7 @@ runs:
       with:
         slack-bot-token: ${{ inputs.slack-bot-token }}
         channel-id: ${{ inputs.slack-channel-id }}
-        custom-payload: |
+        custom-payload: >
           {
             "blocks": [
               {
