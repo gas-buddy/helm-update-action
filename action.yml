@@ -32,10 +32,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Fetch the Latest Tag and Update Helm Chart
+    - name: Fetch Latest Tag and Update Helm Chart
       shell: bash
       run: |
         set -euo pipefail
+
+        # Fetch the latest tag
         echo "Fetching the latest tag for repository: ${{ inputs.repository-name }}"
         LATEST_TAG=$(aws ecr describe-images \
                       --repository-name "${{ inputs.repository-name }}" \
@@ -49,13 +51,17 @@ runs:
         fi
 
         echo "Fetched latest tag: $LATEST_TAG"
+
+        # Authenticate Docker with ECR
         echo "Authenticating Docker with ECR..."
         aws ecr get-login-password --region "${{ inputs.aws-region }}" | docker login --username AWS --password-stdin "${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com"
 
+        # Update Helm chart values
         echo "Updating Helm chart values at: ${{ inputs.helm-chart-path }}"
         sed -i "s/^  tag: .*/  tag: $LATEST_TAG/" "${{ inputs.helm-chart-path }}"
         helm lint $(dirname "${{ inputs.helm-chart-path }}") --values "${{ inputs.helm-chart-path }}"
 
+        # Commit and push changes
         echo "Preparing Git commit..."
         if git diff --quiet "${{ inputs.helm-chart-path }}"; then
             echo "No changes detected in the Helm chart. Exiting."
