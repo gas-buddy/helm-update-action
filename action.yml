@@ -55,6 +55,13 @@ runs:
         # Authenticate Docker with ECR
         echo "Authenticating Docker with ECR..."
         aws ecr get-login-password --region "${{ inputs.aws-region }}" | docker login --username AWS --password-stdin "${{ inputs.aws-account-id }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com"
+        
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod +x get_helm.sh
+        ./get_helm.sh
+
+        echo "Debugging Helm values file (before):"
+        cat "${{ inputs.helm-chart-path }}"
 
         # Update Helm chart values
         echo "Updating Helm chart values at: ${{ inputs.helm-chart-path }}"
