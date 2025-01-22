@@ -39,12 +39,15 @@ runs:
 
         # Fetch the latest tag
         echo "Fetching the latest tag for repository: ${{ inputs.repository-name }}"
-        LATEST_TAG=$(aws ecr describe-images \
-                      --repository-name "${{ inputs.repository-name }}" \
-                      --registry-id "${{ inputs.aws-account-id }}" \
-                      --region "${{ inputs.aws-region }}" \
-                      --query 'sort_by(imageDetails, &imagePushedAt)[-1].imageTags | [0]' \
-                      --output text)
+        LATEST_TAG=$(aws ecr describe-images --repository-name "${inputs_repository_name}" --registry-id "${inputs_aws_account_id}" --region "${inputs_aws_region}" --query 'sort_by(imageDetails, &imagePushedAt)[*].imageTags[*]' --output text | tr '\t' '\n' | tail -1)
+        # LATEST_TAG=$(aws ecr describe-images \
+        #               --repository-name "${{ inputs.repository-name }}" \
+        #               --registry-id "${{ inputs.aws-account-id }}" \
+        #               --region "${{ inputs.aws-region }}" \
+        #               --query 'sort_by(imageDetails, &imagePushedAt)[*].imageTags[*]' \
+        #                 | tr '\t' '\n' \
+        #                 | tail -1)
+        #               --output text)
 
         if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
             echo "No valid tags found for the latest image in ECR." && exit 1
