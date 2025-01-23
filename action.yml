@@ -44,8 +44,7 @@ runs:
                       --repository-name "${{ inputs.repository-name }}" \
                       --registry-id "${{ inputs.aws-account-id }}" \
                       --region "${{ inputs.aws-region }}" \
-                      --query 'sort_by(imageDetails, &imagePushedAt)[-1].imageTags[0]' \
-                      --output text)
+                      --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' | jq . --raw-output)
 
         if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
             echo "No valid tags found for the latest image in ECR." && exit 1
