@@ -94,7 +94,9 @@ runs:
         title: "Update Helm Chart Tag to $LATEST_TAG"
         body: |
           This pull request updates the Helm chart to use the latest image tag: `$LATEST_TAG`.
-        labels: ["automation", "helm-update"]
+        labels: 
+          - automation
+          - helm-update
 
     - name: Notify on Slack
       uses: slackapi/slack-github-action@v1.24.0
