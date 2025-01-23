@@ -84,16 +84,16 @@ runs:
         git commit -m "Update Helm chart tag to $LATEST_TAG"
         git push origin "$BRANCH_NAME"
 
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ inputs.github-token }}
-        branch: ${{ env.BRANCH_NAME }}
-        base: main
-        title: "Update Helm Chart Tag to $LATEST_TAG"
-        body: |
-          This pull request updates the Helm chart to use the latest image tag: `$LATEST_TAG`.
-        labels: ["automation", "helm-update"]
+    # - name: Create Pull Request
+    #   uses: peter-evans/create-pull-request@v5
+    #   with:
+    #     token: ${{ inputs.github-token }}
+    #     branch: ${{ env.BRANCH_NAME }}
+    #     base: main
+    #     title: "Update Helm Chart Tag to $LATEST_TAG"
+    #     body: |
+    #       This pull request updates the Helm chart to use the latest image tag: `$LATEST_TAG`.
+    #     labels: ["automation", "helm-update"]
 
     - name: Notify on Slack
       if: ${{ inputs.slack-bot-token && inputs.slack-channel-id }}
