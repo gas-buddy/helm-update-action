@@ -22,11 +22,8 @@ inputs:
   github-token:
     description: "GitHub token for authentication."
     required: true
-  slack-bot-token:
-    description: "Slack Bot Token."
-    required: false
-  slack-channel-id:
-    description: "Slack Channel ID."
+  slack-webhook-url:
+    description: "Slack Webhook URL for notifications."
     required: false
 
 runs:
