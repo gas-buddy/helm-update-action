@@ -81,12 +81,12 @@ runs:
         git commit -m "Update Helm chart tag to $LATEST_TAG"
         git push origin "$BRANCH_NAME"
 
-    - name: Send Notification to Slack
-      if: success() || failure()
-      uses: rtCamp/action-slack-notify@v2
-      with:
-        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
-        message: >
-          ${{ github.event_name }} event triggered for branch ${{ env.BRANCH_NAME }}.
-          Helm Chart tag updated to $LATEST_TAG.
-          Status: ${{ job.status }}.
+    # - name: Send Notification to Slack
+    #   if: success() || failure()
+    #   uses: rtCamp/action-slack-notify@v2
+    #   with:
+    #     webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+    #     message: >
+    #       ${{ github.event_name }} event triggered for branch ${{ env.BRANCH_NAME }}.
+    #       Helm Chart tag updated to $LATEST_TAG.
+    #       Status: ${{ job.status }}.
