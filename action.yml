@@ -71,7 +71,7 @@ runs:
             echo "No changes detected in the Helm chart. Exiting."
             exit 0
         fi
-        git remote set-url origin https://x-access-token:${{ inputs.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+        # git remote set-url origin https://x-access-token:${{ inputs.GITHUB_TOKEN }}@github.com/${{ github.repository }}
 
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
